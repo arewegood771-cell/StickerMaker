@@ -1,100 +1,701 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>Sticker Tempel Text</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#9333ea">
+    <meta name="description" content="App tempel text dan sticker ke gambar">
+    <title>Sticker Tempel Text - RICCO;D</title>
+    <link rel="manifest" href="manifest.json">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow-x: hidden; }
+    </style>
 </head>
-
-<body class="bg-gray-900">
-<div id="root"></div>
-
-<script type="text/babel">
-const { useState, useRef, useEffect } = React;
-
-function MemeMaker() {
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+        
+       import React, { useState, useRef, useEffect } from 'react';
+import { Upload, Download, Type, Trash2, ImageIcon } from 'lucide-react';
+const MemeMaker = () => {
   const [image, setImage] = useState(null);
   const [topText, setTopText] = useState('');
   const [bottomText, setBottomText] = useState('');
+  const [fontSize, setFontSize] = useState(48);
+  const [fontFamily, setFontFamily] = useState('Impact');
+  const [uploadedFontName, setUploadedFontName] = useState('');
+  const [outlineWidth, setOutlineWidth] = useState(3);
+  const [topTextPos, setTopTextPos] = useState({ x: 0.5, y: 0.15 });
+  const [bottomTextPos, setBottomTextPos] = useState({ x: 0.5, y: 0.85 });
+  const [dragging, setDragging] = useState(null);
+  const [riccoClicks, setRiccoClicks] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [stickerImages, setStickerImages] = useState([]);
   const canvasRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const stickerInputRef = useRef(null);
+  const fontInputRef = useRef(null);
 
   useEffect(() => {
-    if (!image) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    canvas.width = image.width;
-    canvas.height = image.height;
-    ctx.drawImage(image, 0, 0);
-
-    ctx.font = 'bold 48px Impact';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'white';
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 3;
-
-    if (topText) {
-      ctx.strokeText(topText.toUpperCase(), canvas.width/2, 60);
-      ctx.fillText(topText.toUpperCase(), canvas.width/2, 60);
+    if (image) {
+      drawMeme();
     }
+  }, [image, topText, bottomText, fontSize, fontFamily, uploadedFontName, outlineWidth, topTextPos, bottomTextPos, stickerImages]);
 
-    if (bottomText) {
-      ctx.strokeText(bottomText.toUpperCase(), canvas.width/2, canvas.height - 20);
-      ctx.fillText(bottomText.toUpperCase(), canvas.width/2, canvas.height - 20);
-    }
-  }, [image, topText, bottomText]);
-
-  const uploadImage = e => {
+  const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    const img = new Image();
-    img.onload = () => setImage(img);
-    img.src = URL.createObjectURL(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          setImage(img);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const download = () => {
+  const handleStickerUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          setStickerImages([...stickerImages, {
+            img,
+            x: 0.5,
+            y: 0.5,
+            size: 0.2,
+            id: Date.now()
+          }]);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFontUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && (file.name.endsWith('.ttf') || file.name.endsWith('.otf') || file.name.endsWith('.woff') || file.name.endsWith('.woff2'))) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const fontName = `CustomFont_${Date.now()}`;
+        const fontFace = new FontFace(fontName, `url(${event.target.result})`);
+        
+        fontFace.load().then((loadedFont) => {
+          document.fonts.add(loadedFont);
+          setUploadedFontName(fontName);
+          alert(`Font "${file.name}" berhasil diupload!`);
+        }).catch((error) => {
+          console.error('Error loading font:', error);
+          alert('Gagal load font. Pastikan file format benar (.ttf, .otf, .woff, .woff2)');
+        });
+      };
+      reader.readAsDataURL(file);
+    } else {
+      alert('File harus format .ttf, .otf, .woff, atau .woff2');
+    }
+  };
+
+  const drawMeme = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !image) return;
+
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size to match image
+    const maxWidth = 800;
+    const maxHeight = 800;
+    let width = image.width;
+    let height = image.height;
+
+    // Scale down if too large
+    if (width > maxWidth || height > maxHeight) {
+      const ratio = Math.min(maxWidth / width, maxHeight / height);
+      width *= ratio;
+      height *= ratio;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    // Draw image
+    ctx.drawImage(image, 0, 0, width, height);
+
+    // Draw sticker images
+    stickerImages.forEach(sticker => {
+      if (sticker.img && sticker.img.complete) {
+        const stickerWidth = sticker.size * width;
+        const stickerHeight = (sticker.img.height / sticker.img.width) * stickerWidth;
+        const x = sticker.x * width - stickerWidth / 2;
+        const y = sticker.y * height - stickerHeight / 2;
+        ctx.drawImage(sticker.img, x, y, stickerWidth, stickerHeight);
+      }
+    });
+
+    // Set up text style
+    const finalFont = uploadedFontName || fontFamily;
+    ctx.fillStyle = 'white';
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = outlineWidth;
+    ctx.textAlign = 'center';
+    ctx.font = `bold ${fontSize}px ${finalFont}, Arial Black, sans-serif`;
+    ctx.textTransform = 'uppercase';
+
+    // Draw top text
+    if (topText) {
+      const lines = wrapText(ctx, topText.toUpperCase(), width - 20);
+      const totalHeight = lines.length * fontSize * 1.1;
+      const startY = topTextPos.y * height;
+      lines.forEach((line, index) => {
+        const y = startY + (index * fontSize * 1.1);
+        const x = topTextPos.x * width;
+        ctx.strokeText(line, x, y);
+        ctx.fillText(line, x, y);
+      });
+    }
+
+    // Draw bottom text
+    if (bottomText) {
+      const lines = wrapText(ctx, bottomText.toUpperCase(), width - 20);
+      const totalHeight = lines.length * fontSize * 1.1;
+      const startY = bottomTextPos.y * height;
+      lines.forEach((line, index) => {
+        const y = startY + (index * fontSize * 1.1);
+        const x = bottomTextPos.x * width;
+        ctx.strokeText(line, x, y);
+        ctx.fillText(line, x, y);
+      });
+    }
+  };
+
+  const wrapText = (ctx, text, maxWidth) => {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i];
+      const width = ctx.measureText(currentLine + ' ' + word).width;
+      if (width < maxWidth) {
+        currentLine += ' ' + word;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    lines.push(currentLine);
+    return lines;
+  };
+
+  const downloadMeme = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const link = document.createElement('a');
     link.download = 'meme.png';
-    link.href = canvasRef.current.toDataURL();
+    link.href = canvas.toDataURL('image/png');
     link.click();
   };
 
+  const resetMeme = () => {
+    setImage(null);
+    setTopText('');
+    setBottomText('');
+    setFontSize(48);
+    setFontFamily('Impact');
+    setUploadedFontName('');
+    setOutlineWidth(3);
+    setTopTextPos({ x: 0.5, y: 0.15 });
+    setBottomTextPos({ x: 0.5, y: 0.85 });
+    setStickerImages([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (stickerInputRef.current) {
+      stickerInputRef.current.value = '';
+    }
+    if (fontInputRef.current) {
+      fontInputRef.current.value = '';
+    }
+  };
+
+  const handleMouseDown = (e, textType) => {
+    setDragging(textType);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!dragging || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    
+    if (dragging === 'top') {
+      setTopTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+    } else if (dragging === 'bottom') {
+      setBottomTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+    } else if (dragging.startsWith('sticker-')) {
+      const stickerId = parseInt(dragging.split('-')[1]);
+      setStickerImages(stickerImages.map(s => 
+        s.id === stickerId ? { ...s, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : s
+      ));
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!dragging || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = (touch.clientX - rect.left) / rect.width;
+    const y = (touch.clientY - rect.top) / rect.height;
+    
+    if (dragging === 'top') {
+      setTopTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+    } else if (dragging === 'bottom') {
+      setBottomTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+    } else if (dragging.startsWith('sticker-')) {
+      const stickerId = parseInt(dragging.split('-')[1]);
+      setStickerImages(stickerImages.map(s => 
+        s.id === stickerId ? { ...s, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : s
+      ));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setDragging(null);
+  };
+
+  const handleRiccoClick = () => {
+    setRiccoClicks(prev => prev + 1);
+    setIsAnimating(true);
+    setTimeout(() => setIsAnimating(false), 500);
+  };
+
+  const [templates, setTemplates] = useState([]);
+
+  useEffect(() => {
+    // Load template images from user uploads
+    const loadTemplates = async () => {
+      try {
+        const template1 = await loadImageFromFile('bahlil.jpg');
+        const template2 = await loadImageFromFile('patrick.jpg');
+        const template3 = await loadImageFromFile('anime.jpg');
+        setTemplates([template1, template2, template3].filter(Boolean));
+      } catch (e) {
+        console.log('Templates not loaded');
+      }
+    };
+    loadTemplates();
+  }, []);
+
+  const loadImageFromFile = (filename) => {
+    return new Promise((resolve) => {
+      window.fs.readFile(filename, { encoding: 'utf8' })
+        .then(data => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = data;
+        })
+        .catch(() => resolve(null));
+    });
+  };
+
+  const loadTemplate = (templateImg) => {
+    if (templateImg) {
+      setImage(templateImg);
+    }
+  };
+
   return (
-    <div className="p-6 max-w-xl mx-auto text-white">
-      <h1 className="text-3xl font-black mb-4">STICKER TEMPEL TEXT</h1>
+    <div className="min-h-screen relative p-4 animate-fade-in" style={{
+      backgroundImage: 'url(https://i.imgur.com/USMJ1K3.png)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      animation: 'fadeIn 0.5s ease-in'
+    }}>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes shake {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(-5deg); }
+          75% { transform: rotate(5deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        .animate-bounce-slow {
+          animation: bounce 2s ease-in-out infinite;
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+        .animate-pulse-slow {
+          animation: pulse 2s ease-in-out infinite;
+        }
+      `}</style>
+      <div className="absolute inset-0 bg-black/20"></div>
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="text-center mb-8 animate-bounce-slow">
+          <h1 className="text-5xl font-black text-white mb-2 drop-shadow-lg" style={{textShadow: '4px 4px 8px rgba(0,0,0,0.8)'}}>STICKER TEMPEL TEXT</h1>
+          <p className="text-white text-lg font-bold" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.8)'}}>INI BUAT TEMPEL TEXT YGY!</p>
+        </div>
 
-      <input type="file" accept="image/*" onChange={uploadImage} />
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Left Panel - Controls */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+              <h2 className="text-2xl font-bold text-black mb-4 flex items-center gap-2">
+                <ImageIcon className="w-6 h-6" />
+                Tempel Sticker/Gambar
+              </h2>
+              
+              <input
+                ref={stickerInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleStickerUpload}
+                className="hidden"
+                id="sticker-upload"
+              />
+              
+              <label
+                htmlFor="sticker-upload"
+                className="block w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300 hover:from-pink-600 hover:to-purple-700"
+              >
+                <ImageIcon className="w-5 h-5 inline mr-2" />
+                + Tambah Sticker
+              </label>
+              
+              {stickerImages.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-bold text-black">Sticker Aktif: {stickerImages.length}</p>
+                  <button
+                    onClick={() => setStickerImages([])}
+                    className="w-full bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600 transition-all duration-300 hover:shadow-lg"
+                  >
+                    Hapus Semua Sticker
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+              <h2 className="text-2xl font-bold text-black mb-4 flex items-center gap-2">
+                <Upload className="w-6 h-6" />
+                Upload Gambar
+              </h2>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="file-upload"
+              />
+              
+              <div className="space-y-3">
+                <label
+                  htmlFor="file-upload"
+                  className="block w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-lg transform hover:scale-105 transition"
+                >
+                  <ImageIcon className="w-5 h-5 inline mr-2" />
+                  Pilih Gambar
+                </label>
+              </div>
+            </div>
 
-      <input className="block w-full mt-3 p-2 text-black"
-        placeholder="Text Atas"
-        value={topText}
-        onChange={e=>setTopText(e.target.value)}
-      />
+            {templates.length > 0 && (
+              <div className="bg-white rounded-2xl p-6 shadow-2xl">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Gambar Template Meme</h2>
+                <div className="grid grid-cols-3 gap-3">
+                  {templates.map((template, index) => (
+                    <button
+                      key={index}
+                      onClick={() => loadTemplate(template)}
+                      className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-300 hover:border-purple-500 transition transform hover:scale-105"
+                    >
+                      <img
+                        src={template.src}
+                        alt={`Template ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-      <input className="block w-full mt-3 p-2 text-black"
-        placeholder="Text Bawah"
-        value={bottomText}
-        onChange={e=>setBottomText(e.target.value)}
-      />
+            <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+              <h2 className="text-2xl font-bold text-black mb-4 flex items-center gap-2">
+                <Type className="w-6 h-6" />
+                TEXT
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-black mb-2">
+                    Text Atas
+                  </label>
+                  <input
+                    type="text"
+                    value={topText}
+                    onChange={(e) => setTopText(e.target.value)}
+                    placeholder="TEXT ATAS"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold uppercase transition-all duration-300 focus:shadow-lg"
+                  />
+                </div>
 
-      <div className="mt-4 bg-white p-2">
-        {image && <canvas ref={canvasRef} className="max-w-full" />}
+                <div>
+                  <label className="block text-sm font-bold text-black mb-2">
+                    Text Bawah
+                  </label>
+                  <input
+                    type="text"
+                    value={bottomText}
+                    onChange={(e) => setBottomText(e.target.value)}
+                    placeholder="TEXT BAWAH"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold uppercase transition-all duration-300 focus:shadow-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-black mb-2">
+                    Pilih Font
+                  </label>
+                  <select
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value)}
+                    disabled={uploadedFontName !== ''}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold transition-all duration-300 focus:shadow-lg disabled:bg-gray-200 disabled:cursor-not-allowed"
+                  >
+                    <option value="Impact">Impact</option>
+                    <option value="Arial Black">Arial Black</option>
+                    <option value="Comic Sans MS">Comic Sans MS</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Verdana">Verdana</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-black mb-2">
+                    Upload Font Custom (.ttf, .otf, .woff)
+                  </label>
+                  
+                  <input
+                    ref={fontInputRef}
+                    type="file"
+                    accept=".ttf,.otf,.woff,.woff2"
+                    onChange={handleFontUpload}
+                    className="hidden"
+                    id="font-upload"
+                  />
+                  
+                  <label
+                    htmlFor="font-upload"
+                    className="block w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-lg font-bold text-center cursor-pointer hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                  >
+                    {uploadedFontName ? '✓ Font Terupload' : '📁 Pilih File Font'}
+                  </label>
+                  
+                  {uploadedFontName && (
+                    <div className="mt-2 flex items-center justify-between bg-green-100 px-3 py-2 rounded-lg">
+                      <span className="text-xs font-bold text-green-800">Font custom aktif!</span>
+                      <button
+                        onClick={() => setUploadedFontName('')}
+                        className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-black mb-2">
+                    Ukuran Font: {fontSize}px
+                  </label>
+                  <input
+                    type="range"
+                    min="20"
+                    max="80"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-black mb-2">
+                    Ketebalan Outline: {outlineWidth}px
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={outlineWidth}
+                    onChange={(e) => setOutlineWidth(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={downloadMeme}
+                  disabled={!image}
+                  className={`px-6 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-2xl active:scale-95 ${
+                    image
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 animate-pulse-slow'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Download className="w-5 h-5" />
+                  Download
+                </button>
+                
+                <button
+                  onClick={resetMeme}
+                  className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-xl font-bold hover:from-red-600 hover:to-red-700 hover:shadow-2xl active:scale-95 transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel - Preview */}
+          <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+            <h2 className="text-2xl font-bold text-black mb-4">Preview Sticker</h2>
+            
+            <div className="bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center min-h-[400px]">
+              {image ? (
+                <div 
+                  className="relative"
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleMouseUp}
+                >
+                  <canvas
+                    ref={canvasRef}
+                    className="max-w-full h-auto cursor-move"
+                    onMouseDown={(e) => {
+                      const canvas = canvasRef.current;
+                      const rect = canvas.getBoundingClientRect();
+                      const x = (e.clientX - rect.left) / rect.width;
+                      const y = (e.clientY - rect.top) / rect.height;
+                      
+                      // Check sticker click
+                      for (let i = stickerImages.length - 1; i >= 0; i--) {
+                        const sticker = stickerImages[i];
+                        const stickerWidth = sticker.size;
+                        const stickerHeight = sticker.size * (sticker.img.height / sticker.img.width);
+                        const distX = Math.abs(x - sticker.x);
+                        const distY = Math.abs(y - sticker.y);
+                        
+                        if (distX < stickerWidth / 2 && distY < stickerHeight / 2) {
+                          setDragging(`sticker-${sticker.id}`);
+                          return;
+                        }
+                      }
+                      
+                      const topDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
+                      const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
+                      
+                      if (topText && topDist < 0.1) {
+                        handleMouseDown(e, 'top');
+                      } else if (bottomText && bottomDist < 0.1) {
+                        handleMouseDown(e, 'bottom');
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      const canvas = canvasRef.current;
+                      const rect = canvas.getBoundingClientRect();
+                      const touch = e.touches[0];
+                      const x = (touch.clientX - rect.left) / rect.width;
+                      const y = (touch.clientY - rect.top) / rect.height;
+                      
+                      // Check sticker click
+                      for (let i = stickerImages.length - 1; i >= 0; i--) {
+                        const sticker = stickerImages[i];
+                        const stickerWidth = sticker.size;
+                        const stickerHeight = sticker.size * (sticker.img.height / sticker.img.width);
+                        const distX = Math.abs(x - sticker.x);
+                        const distY = Math.abs(y - sticker.y);
+                        
+                        if (distX < stickerWidth / 2 && distY < stickerHeight / 2) {
+                          setDragging(`sticker-${sticker.id}`);
+                          return;
+                        }
+                      }
+                      
+                      const topDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
+                      const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
+                      
+                      if (topText && topDist < 0.1) {
+                        setDragging('top');
+                      } else if (bottomText && bottomDist < 0.1) {
+                        setDragging('bottom');
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="text-center text-gray-400 p-8">
+                  <ImageIcon className="w-24 h-24 mx-auto mb-4 opacity-50 animate-bounce-slow" />
+                  <p className="text-lg font-bold text-black">Upload Dulu Gambarnya wok</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div 
+          onClick={handleRiccoClick}
+          className={`mt-6 bg-white/20 backdrop-blur-md rounded-2xl p-4 text-white text-center border-2 border-white/30 cursor-pointer hover:bg-white/30 transition-all duration-300 ${isAnimating ? 'animate-shake' : ''}`}
+        >
+          <p className="text-xl font-black" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.8)'}}>
+            {riccoClicks > 0 ? 'RIKKIUU' : 'RICCO;D'}
+          </p>
+        </div>
       </div>
-
-      <button onClick={download}
-        className="mt-4 bg-green-500 px-4 py-2 rounded font-bold">
-        Download
-      </button>
     </div>
   );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<MemeMaker />);
-</script>
+};
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MemeMaker />);
+    </script>
 </body>
 </html>
