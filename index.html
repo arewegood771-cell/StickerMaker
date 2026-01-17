@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sticker Tempel Text</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-bounce-slow {
+            animation: bounce 2s ease-in-out infinite;
+        }
+        .animate-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        .animate-pulse-slow {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        body {
+            background-image: url('https://i.imgur.com/USMJ1K3.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 animate-fade-in">
+    <div class="absolute inset-0 bg-black/20"></div>
+    <div class="max-w-6xl mx-auto relative z-10">
+        <div class="text-center mb-8 animate-bounce-slow">
+            <h1 class="text-5xl font-black text-white mb-2 drop-shadow-lg" style="text-shadow: 4px 4px 8px rgba(0,0,0,0.8)">STICKER TEMPEL TEXT</h1>
+            <p class="text-white text-lg font-bold" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8)">INI BUAT TEMPEL TEXT YGY!</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Left Panel - Controls -->
+            <div class="space-y-4">
+                <!-- Sticker Upload -->
+                <div class="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                    <h2 class="text-2xl font-bold text-black mb-4 flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Tempel Sticker/Gambar
+                    </h2>
+                    
+                    <input type="file" accept="image/*" id="sticker-upload" class="hidden">
+                    
+                    <label for="sticker-upload" class="block w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300 hover:from-pink-600 hover:to-purple-700">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        + Tambah Sticker
+                    </label>
+                    
+                    <div id="sticker-info" class="mt-4 space-y-2 hidden">
+                        <p class="text-sm font-bold text-black">Sticker Aktif: <span id="sticker-count">0</span></p>
+                        <button id="clear-stickers" class="w-full bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600 transition-all duration-300 hover:shadow-lg">
+                            Hapus Semua Sticker
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Image Upload -->
+                <div class="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                    <h2 class="text-2xl font-bold text-black mb-4 flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                        Upload Gambar
+                    </h2>
+                    
+                    <input type="file" accept="image/*" id="file-upload" class="hidden">
+                    
+                    <label for="file-upload" class="block w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-lg transform hover:scale-105 transition">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Pilih Gambar
+                    </label>
+                </div>
+
+                <!-- Text Controls -->
+                <div class="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                    <h2 class="text-2xl font-bold text-black mb-4 flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                        TEXT
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-black mb-2">Text Atas</label>
+                            <input type="text" id="top-text" placeholder="TEXT ATAS" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold uppercase transition-all duration-300 focus:shadow-lg">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-black mb-2">Text Bawah</label>
+                            <input type="text" id="bottom-text" placeholder="TEXT BAWAH" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold uppercase transition-all duration-300 focus:shadow-lg">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-black mb-2">Pilih Font</label>
+                            <select id="font-family" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold transition-all duration-300 focus:shadow-lg">
+                                <option value="Impact">Impact</option>
+                                <option value="Arial Black">Arial Black</option>
+                                <option value="Comic Sans MS">Comic Sans MS</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Verdana">Verdana</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-black mb-2">Upload Font Custom (.ttf, .otf, .woff)</label>
+                            <input type="file" accept=".ttf,.otf,.woff,.woff2" id="font-upload" class="hidden">
+                            <label for="font-upload" class="block w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-lg font-bold text-center cursor-pointer hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                                <span id="font-label">📁 Pilih File Font</span>
+                            </label>
+                            <div id="font-status" class="mt-2 hidden flex items-center justify-between bg-green-100 px-3 py-2 rounded-lg">
+                                <span class="text-xs font-bold text-green-800">Font custom aktif!</span>
+                                <button id="remove-font" class="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition">Hapus</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-black mb-2">Ukuran Font: <span id="font-size-value">48</span>px</label>
+                            <input type="range" id="font-size" min="20" max="80" value="48" class="w-full">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-black mb-2">Ketebalan Outline: <span id="outline-value">3</span>px</label>
+                            <input type="range" id="outline-width" min="1" max="10" value="3" class="w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="download-btn" disabled class="px-6 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-2xl active:scale-95 bg-gray-400 cursor-not-allowed">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download
+                        </button>
+                        
+                        <button id="reset-btn" class="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-xl font-bold hover:from-red-600 hover:to-red-700 hover:shadow-2xl active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Preview -->
+            <div class="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                <h2 class="text-2xl font-bold text-black mb-4">Preview Sticker</h2>
+                
+                <div class="bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center min-h-[400px]">
+                    <div id="preview-container" class="hidden">
+                        <canvas id="canvas" class="max-w-full h-auto cursor-move"></canvas>
+                    </div>
+                    <div id="empty-state" class="text-center text-gray-400 p-8">
+                        <svg class="w-24 h-24 mx-auto mb-4 opacity-50 animate-bounce-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <p class="text-lg font-bold text-black">Upload Dulu Gambarnya wok</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ricco-box" class="mt-6 bg-white/20 backdrop-blur-md rounded-2xl p-4 text-white text-center border-2 border-white/30 cursor-pointer hover:bg-white/30 transition-all duration-300">
+            <p class="text-xl font-black" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8)">RICCO;D</p>
+        </div>
+    </div>
+
+    <script>
+        let image = null;
+        let stickerImages = [];
+        let topTextPos = { x: 0.5, y: 0.15 };
+        let bottomTextPos = { x: 0.5, y: 0.85 };
+        let dragging = null;
+        let uploadedFontName = '';
+        let riccoClicks = 0;
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Event Listeners
+        document.getElementById('file-upload').addEventListener('change', handleImageUpload);
+        document.getElementById('sticker-upload').addEventListener('change', handleStickerUpload);
+        document.getElementById('font-upload').addEventListener('change', handleFontUpload);
+        document.getElementById('top-text').addEventListener('input', drawMeme);
+        document.getElementById('bottom-text').addEventListener('input', drawMeme);
+        document.getElementById('font-family').addEventListener('change', drawMeme);
+        document.getElementById('font-size').addEventListener('input', (e) => {
+            document.getElementById('font-size-value').textContent = e.target.value;
+            drawMeme();
+        });
+        document.getElementById('outline-width').addEventListener('input', (e) => {
+            document.getElementById('outline-value').textContent = e.target.value;
+            drawMeme();
+        });
+        document.getElementById('download-btn').addEventListener('click', downloadMeme);
+        document.getElementById('reset-btn').addEventListener('click', resetMeme);
+        document.getElementById('clear-stickers').addEventListener('click', () => {
+            stickerImages = [];
+            updateStickerInfo();
+            drawMeme();
+        });
+        document.getElementById('remove-font').addEventListener('click', () => {
+            uploadedFontName = '';
+            document.getElementById('font-status').classList.add('hidden');
+            document.getElementById('font-label').textContent = '📁 Pilih File Font';
+            document.getElementById('font-family').disabled = false;
+            drawMeme();
+        });
+        document.getElementById('ricco-box').addEventListener('click', () => {
+            riccoClicks++;
+            const box = document.getElementById('ricco-box');
+            box.classList.add('animate-shake');
+            box.querySelector('p').textContent = riccoClicks > 0 ? 'RIKKIUU' : 'RICCO;D';
+            setTimeout(() => box.classList.remove('animate-shake'), 500);
+        });
+
+        canvas.addEventListener('mousedown', handleCanvasMouseDown);
+        canvas.addEventListener('mousemove', handleCanvasMouseMove);
+        canvas.addEventListener('mouseup', () => dragging = null);
+        canvas.addEventListener('mouseleave', () => dragging = null);
+        canvas.addEventListener('touchstart', handleCanvasTouchStart);
+        canvas.addEventListener('touchmove', handleCanvasTouchMove);
+        canvas.addEventListener('touchend', () => dragging = null);
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        image = img;
+                        document.getElementById('empty-state').classList.add('hidden');
+                        document.getElementById('preview-container').classList.remove('hidden');
+                        document.getElementById('download-btn').disabled = false;
+                        document.getElementById('download-btn').className = 'px-6 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-2xl active:scale-95 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 animate-pulse-slow';
+                        drawMeme();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleStickerUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        stickerImages.push({
+                            img,
+                            x: 0.5,
+                            y: 0.5,
+                            size: 0.2,
+                            id: Date.now()
+                        });
+                        updateStickerInfo();
+                        drawMeme();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleFontUpload(e) {
+            const file = e.target.files[0];
+            if (file && (file.name.endsWith('.ttf') || file.name.endsWith('.otf') || file.name.endsWith('.woff') || file.name.endsWith('.woff2'))) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const fontName = `CustomFont_${Date.now()}`;
+                    const fontFace = new FontFace(fontName, `url(${event.target.result})`);
+                    
+                    fontFace.load().then((loadedFont) => {
+                        document.fonts.add(loadedFont);
+                        uploadedFontName = fontName;
+                        document.getElementById('font-label').textContent = '✓ Font Terupload';
+                        document.getElementById('font-status').classList.remove('hidden');
+                        document.getElementById('font-family').disabled = true;
+                        alert(`Font "${file.name}" berhasil diupload!`);
+                        drawMeme();
+                    }).catch((error) => {
+                        console.error('Error loading font:', error);
+                        alert('Gagal load font. Pastikan file format benar (.ttf, .otf, .woff, .woff2)');
+                    });
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('File harus format .ttf, .otf, .woff, atau .woff2');
+            }
+        }
+
+        function updateStickerInfo() {
+            const info = document.getElementById('sticker-info');
+            const count = document.getElementById('sticker-count');
+            count.textContent = stickerImages.length;
+            if (stickerImages.length > 0) {
+                info.classList.remove('hidden');
+            } else {
+                info.classList.add('hidden');
+            }
+        }
+
+        function drawMeme() {
+            if (!image) return;
+
+            const maxWidth = 800;
+            const maxHeight = 800;
+            let width = image.width;
+            let height = image.height;
+
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width *= ratio;
+                height *= ratio;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.drawImage(image, 0, 0, width, height);
+
+            // Draw stickers
+            stickerImages.forEach(sticker => {
+                if (sticker.img && sticker.img.complete) {
+                    const stickerWidth = sticker.size * width;
+                    const stickerHeight = (sticker.img.height / sticker.img.width) * stickerWidth;
+                    const x = sticker.x * width - stickerWidth / 2;
+                    const y = sticker.y * height - stickerHeight / 2;
+                    ctx.drawImage(sticker.img, x, y, stickerWidth, stickerHeight);
+                }
+            });
+
+            // Draw text
+            const fontSize = parseInt(document.getElementById('font-size').value);
+            const fontFamily = uploadedFontName || document.getElementById('font-family').value;
+            const outlineWidth = parseInt(document.getElementById('outline-width').value);
+            const topText = document.getElementById('top-text').value;
+            const bottomText = document.getElementById('bottom-text').value;
+
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = outlineWidth;
+            ctx.textAlign = 'center';
+            ctx.font = `bold ${fontSize}px ${fontFamily}, Arial Black, sans-serif`;
+
+            if (topText) {
+                const lines = wrapText(ctx, topText.toUpperCase(), width - 20);
+                const startY = topTextPos.y * height;
+                lines.forEach((line, index) => {
+                    const y = startY + (index * fontSize * 1.1);
+                    const x = topTextPos.x * width;
+                    ctx.strokeText(line, x, y);
+                    ctx.fillText(line, x, y);
+                });
+            }
+
+            if (bottomText) {
+                const lines = wrapText(ctx, bottomText.toUpperCase(), width - 20);
+                const startY = bottomTextPos.y * height;
+                lines.forEach((line, index) => {
+                    const y = startY + (index * fontSize * 1.1);
+                    const x = bottomTextPos.x * width;
+                    ctx.strokeText(line, x, y);
+                    ctx.fillText(line, x, y);
+                });
+            }
+        }
+
+        function wrapText(ctx, text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const width = ctx.measureText(currentLine + ' ' + word).width;
+                if (width < maxWidth) {
+                    currentLine += ' ' + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        function handleCanvasMouseDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+
+            for (let i = stickerImages.length - 1; i >= 0; i--) {
+                const sticker = stickerImages[i];
+                const stickerWidth = sticker.size;
+                const stickerHeight = sticker.size * (sticker.img.height / sticker.img.width);
+                const distX = Math.abs(x - sticker.x);
+                const distY = Math.abs(y - sticker.y);
+
+                if (distX < stickerWidth / 2 && distY < stickerHeight / 2) {
+                    dragging = `sticker-${sticker.id}`;
+                    return;
+                }
+            }
+
+            const topText = document.getElementById('top-text').value;
+            const bottomText = document.getElementById('bottom-text').value;
+            const topDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
+            const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
+
+            if (topText && topDist < 0.1) {
+                dragging = 'top';
+            } else if (bottomText && bottomDist < 0.1) {
+                dragging = 'bottom';
+            }
+        }
+
+        function handleCanvasTouchStart(e) {
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = (touch.clientX - rect.left) / rect.width;
+            const y = (touch.clientY - rect.top) / rect.height;
+
+            for (let i = stickerImages.length - 1; i >= 0; i--) {
+                const sticker = stickerImages[i];
+                const stickerWidth = sticker.size;
+                const stickerHeight = sticker.size * (sticker.img.height / sticker.img.width);
+                const distX = Math.abs(x - sticker.x);
+                const distY = Math.abs(y - sticker.y);
+
+                if (distX < stickerWidth / 2 && distY < stickerHeight / 2) {
+                    dragging = `sticker-${sticker.id}`;
+                    return;
+                }
+            }
+
+            const topText = document.getElementById('top-text').value;
+            const bottomText = document.getElementById('bottom-text').value;
+            const topDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
+            const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
+
+            if (topText && topDist < 0.1) {
+                dragging = 'top';
+            } else if (bottomText && bottomDist < 0.1) {
+                dragging = 'bottom';
+            }
+        }
+
+        function handleCanvasMouseMove(e) {
+            if (!dragging) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+
+            if (dragging === 'top') {
+                topTextPos = { x, y };
+            } else if (dragging === 'bottom') {
+                bottomTextPos = { x, y };
+            } else if (dragging.startsWith('sticker-')) {
+                const stickerId = parseInt(dragging.split('-')[1]);
+                stickerImages = stickerImages.map(s =>
+                    s.id === stickerId ? { ...s, x, y } : s
+                );
+            }
+            drawMeme();
+        }
+
+        function handleCanvasTouchMove(e) {
+            if (!dragging) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+            const y = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
+
+            if (dragging === 'top') {
+                topTextPos = { x, y };
+            } else if (dragging === 'bottom') {
+                bottomTextPos = { x, y };
