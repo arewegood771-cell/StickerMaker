@@ -1,2 +1,0 @@
-# StickerMaker
-Making Sticker Easy
