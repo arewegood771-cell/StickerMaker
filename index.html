@@ -18,16 +18,11 @@ const { useState, useRef, useEffect } = React;
 const MemeMaker = () => {
   const [image, setImage] = useState(null);
   const [isGif, setIsGif] = useState(false);
-  const [topText, setTopText] = useState('');
-  const [bottomText, setBottomText] = useState('');
+  const [texts, setTexts] = useState([]);
   const [fontSize, setFontSize] = useState(48);
   const [fontFamily, setFontFamily] = useState('Impact');
   const [uploadedFontName, setUploadedFontName] = useState('');
   const [outlineWidth, setOutlineWidth] = useState(3);
-  const [topTextPos, setTopTextPos] = useState({ x: 0.5, y: 0.15 });
-  const [bottomTextPos, setBottomTextPos] = useState({ x: 0.5, y: 0.85 });
-  const [topTextSize, setTopTextSize] = useState(1);
-  const [bottomTextSize, setBottomTextSize] = useState(1);
   const [imageScale, setImageScale] = useState(1);
   const [dragging, setDragging] = useState(null);
   const [scaling, setScaling] = useState(null);
@@ -45,7 +40,7 @@ const MemeMaker = () => {
     if (image) {
       drawMeme();
     }
-  }, [image, topText, bottomText, fontSize, fontFamily, uploadedFontName, outlineWidth, topTextPos, bottomTextPos, topTextSize, bottomTextSize, imageScale, stickerImages]);
+  }, [image, texts, fontSize, fontFamily, uploadedFontName, outlineWidth, imageScale, stickerImages]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -62,6 +57,23 @@ const MemeMaker = () => {
         img.src = event.target.result;
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageFromUrl = (url) => {
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      const isGifFile = url.toLowerCase().endsWith('.gif');
+      setIsGif(isGifFile);
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        setImage(img);
+      };
+      img.onerror = () => {
+        alert('Gagal load gambar dari URL. Pastikan link valid dan bisa diakses.');
+      };
+      img.src = url;
     }
   };
 
@@ -97,7 +109,7 @@ const MemeMaker = () => {
         fontFace.load().then((loadedFont) => {
           document.fonts.add(loadedFont);
           setUploadedFontName(fontName);
-          alert(`Font "${file.name}" Sudah diupload cihuyy`);
+          alert(`Font "${file.name}" berhasil diupload!`);
         }).catch((error) => {
           console.error('Error loading font:', error);
           alert('Gagal load font. Pastikan file format benar (.ttf, .otf, .woff, .woff2)');
@@ -147,31 +159,20 @@ const MemeMaker = () => {
     ctx.lineWidth = outlineWidth;
     ctx.textAlign = 'center';
 
-    if (topText) {
-      const scaledFontSize = fontSize * topTextSize;
-      ctx.font = `bold ${scaledFontSize}px ${finalFont}, Arial Black, sans-serif`;
-      const lines = wrapText(ctx, topText.toUpperCase(), width - 20);
-      const startY = topTextPos.y * height;
-      lines.forEach((line, index) => {
-        const y = startY + (index * scaledFontSize * 1.1);
-        const x = topTextPos.x * width;
-        ctx.strokeText(line, x, y);
-        ctx.fillText(line, x, y);
-      });
-    }
-
-    if (bottomText) {
-      const scaledFontSize = fontSize * bottomTextSize;
-      ctx.font = `bold ${scaledFontSize}px ${finalFont}, Arial Black, sans-serif`;
-      const lines = wrapText(ctx, bottomText.toUpperCase(), width - 20);
-      const startY = bottomTextPos.y * height;
-      lines.forEach((line, index) => {
-        const y = startY + (index * scaledFontSize * 1.1);
-        const x = bottomTextPos.x * width;
-        ctx.strokeText(line, x, y);
-        ctx.fillText(line, x, y);
-      });
-    }
+    texts.forEach(textObj => {
+      if (textObj.text) {
+        const scaledFontSize = textObj.fontSize * textObj.scale;
+        ctx.font = `bold ${scaledFontSize}px ${finalFont}, Arial Black, sans-serif`;
+        const lines = wrapText(ctx, textObj.text.toUpperCase(), width - 20);
+        const startY = textObj.y * height;
+        lines.forEach((line, index) => {
+          const y = startY + (index * scaledFontSize * 1.1);
+          const x = textObj.x * width;
+          ctx.strokeText(line, x, y);
+          ctx.fillText(line, x, y);
+        });
+      }
+    });
   };
 
   const wrapText = (ctx, text, maxWidth) => {
@@ -213,16 +214,11 @@ const MemeMaker = () => {
   const resetMeme = () => {
     setImage(null);
     setIsGif(false);
-    setTopText('');
-    setBottomText('');
+    setTexts([]);
     setFontSize(48);
     setFontFamily('Impact');
     setUploadedFontName('');
     setOutlineWidth(3);
-    setTopTextPos({ x: 0.5, y: 0.15 });
-    setBottomTextPos({ x: 0.5, y: 0.85 });
-    setTopTextSize(1);
-    setBottomTextSize(1);
     setImageScale(1);
     setStickerImages([]);
     setDownloadFilename('meme');
@@ -239,10 +235,11 @@ const MemeMaker = () => {
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
     
-    if (dragging === 'top') {
-      setTopTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
-    } else if (dragging === 'bottom') {
-      setBottomTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+    if (dragging && dragging.startsWith('text-')) {
+      const textId = parseInt(dragging.split('-')[1]);
+      setTexts(texts.map(t => 
+        t.id === textId ? { ...t, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : t
+      ));
     } else if (dragging && dragging.startsWith('sticker-')) {
       const stickerId = parseInt(dragging.split('-')[1]);
       setStickerImages(stickerImages.map(s => 
@@ -250,12 +247,15 @@ const MemeMaker = () => {
       ));
     }
     
-    if (scaling === 'top' && e.buttons === 2) {
-      const centerDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
-      setTopTextSize(Math.max(0.3, Math.min(3, centerDist * 5)));
-    } else if (scaling === 'bottom' && e.buttons === 2) {
-      const centerDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
-      setBottomTextSize(Math.max(0.3, Math.min(3, centerDist * 5)));
+    if (scaling && scaling.startsWith('text-') && e.buttons === 2) {
+      const textId = parseInt(scaling.split('-')[1]);
+      setTexts(texts.map(t => {
+        if (t.id === textId) {
+          const centerDist = Math.sqrt(Math.pow(x - t.x, 2) + Math.pow(y - t.y, 2));
+          return { ...t, scale: Math.max(0.3, Math.min(3, centerDist * 5)) };
+        }
+        return t;
+      }));
     } else if (scaling && scaling.startsWith('sticker-') && e.buttons === 2) {
       const stickerId = parseInt(scaling.split('-')[1]);
       setStickerImages(stickerImages.map(s => {
@@ -314,7 +314,7 @@ const MemeMaker = () => {
       return;
     }
     
-    if (e.touches.length === 2 && (scaling === 'top' || scaling === 'bottom')) {
+    if (e.touches.length === 2 && scaling && scaling.startsWith('text-')) {
       e.preventDefault();
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
@@ -325,11 +325,13 @@ const MemeMaker = () => {
       
       if (initialPinchDist) {
         const scale = dist / initialPinchDist;
-        if (scaling === 'top') {
-          setTopTextSize(prev => Math.max(0.3, Math.min(3, prev * scale)));
-        } else {
-          setBottomTextSize(prev => Math.max(0.3, Math.min(3, prev * scale)));
-        }
+        const textId = parseInt(scaling.split('-')[1]);
+        setTexts(texts.map(t => {
+          if (t.id === textId) {
+            return { ...t, scale: Math.max(0.3, Math.min(3, t.scale * scale)) };
+          }
+          return t;
+        }));
         setInitialPinchDist(dist);
       }
       return;
@@ -341,10 +343,11 @@ const MemeMaker = () => {
       const x = (touch.clientX - rect.left) / rect.width;
       const y = (touch.clientY - rect.top) / rect.height;
       
-      if (dragging === 'top') {
-        setTopTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
-      } else if (dragging === 'bottom') {
-        setBottomTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+      if (dragging && dragging.startsWith('text-')) {
+        const textId = parseInt(dragging.split('-')[1]);
+        setTexts(texts.map(t => 
+          t.id === textId ? { ...t, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : t
+        ));
       } else if (dragging && dragging.startsWith('sticker-')) {
         const stickerId = parseInt(dragging.split('-')[1]);
         setStickerImages(stickerImages.map(s => 
@@ -423,7 +426,7 @@ const MemeMaker = () => {
                 htmlFor="sticker-upload"
                 className="block w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
-                Tambah Sticker
+                + Tambah Sticker
               </label>
               
               {stickerImages.length > 0 && (
@@ -438,7 +441,7 @@ const MemeMaker = () => {
                           onClick={() => setStickerImages(stickerImages.filter(s => s.id !== sticker.id))}
                           className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                         >
-                          Hapus
+                          ✖ Hapus
                         </button>
                       </div>
                       <label className="block text-xs font-bold text-black mb-1">Ukuran: {(sticker.size * 100).toFixed(0)}%</label>
@@ -462,7 +465,7 @@ const MemeMaker = () => {
                     onClick={() => setStickerImages([])}
                     className="w-full bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600 transition-all duration-300"
                   >
-                    Hapus Semua sticker
+                    Hapus Semua Sticker
                   </button>
                 </div>
               )}
@@ -494,35 +497,12 @@ const MemeMaker = () => {
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-all duration-300"
                   onPaste={(e) => {
                     const url = e.clipboardData.getData('text');
-                    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-                      const img = new Image();
-                      img.crossOrigin = 'anonymous';
-                      img.onload = () => {
-                        setImage(img);
-                        setIsGif(url.toLowerCase().endsWith('.gif'));
-                      };
-                      img.onerror = () => {
-                        alert('Gagal load gambar dari URL. Pastikan link valid dan bisa diakses.');
-                      };
-                      img.src = url;
-                      e.target.value = url;
-                    }
+                    handleImageFromUrl(url);
+                    e.target.value = url;
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      const url = e.target.value;
-                      if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-                        const img = new Image();
-                        img.crossOrigin = 'anonymous';
-                        img.onload = () => {
-                          setImage(img);
-                          setIsGif(url.toLowerCase().endsWith('.gif'));
-                        };
-                        img.onerror = () => {
-                          alert('Gagal load gambar dari URL. Pastikan link valid dan bisa diakses.');
-                        };
-                        img.src = url;
-                      }
+                      handleImageFromUrl(e.target.value);
                     }
                   }}
                 />
@@ -547,27 +527,79 @@ const MemeMaker = () => {
               <h2 className="text-2xl font-bold text-black mb-4">TEXT</h2>
               
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-black mb-2">Text Atas</label>
-                  <input
-                    type="text"
-                    value={topText}
-                    onChange={(e) => setTopText(e.target.value)}
-                    placeholder="TEXT ATAS"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold uppercase transition-all duration-300"
-                  />
-                </div>
+                <button
+                  onClick={() => {
+                    setTexts([...texts, {
+                      id: Date.now(),
+                      text: '',
+                      x: 0.5,
+                      y: texts.length === 0 ? 0.15 : 0.5,
+                      scale: 1,
+                      fontSize: fontSize
+                    }]);
+                  }}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-4 rounded-xl font-bold hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                >
+                  + Tambah Text
+                </button>
 
-                <div>
-                  <label className="block text-sm font-bold text-black mb-2">Text Bawah</label>
-                  <input
-                    type="text"
-                    value={bottomText}
-                    onChange={(e) => setBottomText(e.target.value)}
-                    placeholder="TEXT BAWAH"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold uppercase transition-all duration-300"
-                  />
-                </div>
+                {texts.map((textObj, index) => (
+                  <div key={textObj.id} className="bg-gray-100 p-4 rounded-lg space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-black">Text {index + 1}</span>
+                      <button
+                        onClick={() => setTexts(texts.filter(t => t.id !== textObj.id))}
+                        className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                      >
+                        ✖ Hapus
+                      </button>
+                    </div>
+                    
+                    <input
+                      type="text"
+                      value={textObj.text}
+                      onChange={(e) => {
+                        setTexts(texts.map(t => 
+                          t.id === textObj.id ? { ...t, text: e.target.value } : t
+                        ));
+                      }}
+                      placeholder="TULIS TEXT DISINI"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold uppercase transition-all duration-300"
+                    />
+
+                    <div>
+                      <label className="block text-xs font-bold text-black mb-1">Ukuran Font: {textObj.fontSize}px</label>
+                      <input
+                        type="range"
+                        min="20"
+                        max="100"
+                        value={textObj.fontSize}
+                        onChange={(e) => {
+                          setTexts(texts.map(t => 
+                            t.id === textObj.id ? { ...t, fontSize: parseInt(e.target.value) } : t
+                          ));
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-black mb-1">Scale: {(textObj.scale * 100).toFixed(0)}%</label>
+                      <input
+                        type="range"
+                        min="30"
+                        max="300"
+                        value={textObj.scale * 100}
+                        onChange={(e) => {
+                          setTexts(texts.map(t => 
+                            t.id === textObj.id ? { ...t, scale: parseInt(e.target.value) / 100 } : t
+                          ));
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                ))}
 
                 <div>
                   <label className="block text-sm font-bold text-black mb-2">Pilih Font</label>
@@ -620,42 +652,6 @@ const MemeMaker = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-black mb-2">Ukuran Font: {fontSize}px</label>
-                  <input
-                    type="range"
-                    min="20"
-                    max="80"
-                    value={fontSize}
-                    onChange={(e) => setFontSize(parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-black mb-2">Ukuran Text Atas: {(topTextSize * 100).toFixed(0)}%</label>
-                  <input
-                    type="range"
-                    min="30"
-                    max="300"
-                    value={topTextSize * 100}
-                    onChange={(e) => setTopTextSize(parseInt(e.target.value) / 100)}
-                    className="w-full"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-black mb-2">Ukuran Text Bawah: {(bottomTextSize * 100).toFixed(0)}%</label>
-                  <input
-                    type="range"
-                    min="30"
-                    max="300"
-                    value={bottomTextSize * 100}
-                    onChange={(e) => setBottomTextSize(parseInt(e.target.value) / 100)}
-                    className="w-full"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-sm font-bold text-black mb-2">Ketebalan Outline: {outlineWidth}px</label>
                   <input
                     type="range"
@@ -668,7 +664,7 @@ const MemeMaker = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-black mb-2">Nama Sticker pas di download</label>
+                  <label className="block text-sm font-bold text-black mb-2">Nama File Download</label>
                   <input
                     type="text"
                     value={downloadFilename}
@@ -676,11 +672,16 @@ const MemeMaker = () => {
                     placeholder="meme"
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold transition-all duration-300"
                   />
-                  <p className="text-xs text-gray-600 mt-1">File akan disimpan sebagai: {downloadFilename || 'sticker'}.{isGif ? 'gif' : 'png'}</p>
+                  <p className="text-xs text-gray-600 mt-1">File akan disimpan sebagai: {downloadFilename || 'meme'}.{isGif ? 'gif' : 'png'}</p>
                 </div>
               </div>
-            </div> 
-              
+            </div>
+
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-4 shadow-2xl">
+              <p className="text-sm font-bold text-white text-center mb-1">💡 Desktop: Klik kanan + drag = resize</p>
+              <p className="text-sm font-bold text-white text-center">📱 Mobile: Pinch zoom (2 jari) = resize</p>
+            </div>
+
             <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -746,20 +747,17 @@ const MemeMaker = () => {
                         }
                       }
                       
-                      const topDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
-                      const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
-                      
-                      if (topText && topDist < 0.1) {
-                        if (isRightClick) {
-                          setScaling('top');
-                        } else {
-                          setDragging('top');
-                        }
-                      } else if (bottomText && bottomDist < 0.1) {
-                        if (isRightClick) {
-                          setScaling('bottom');
-                        } else {
-                          setDragging('bottom');
+                      for (let i = texts.length - 1; i >= 0; i--) {
+                        const text = texts[i];
+                        const dist = Math.sqrt(Math.pow(x - text.x, 2) + Math.pow(y - text.y, 2));
+                        
+                        if (text.text && dist < 0.1) {
+                          if (isRightClick) {
+                            setScaling(`text-${text.id}`);
+                          } else {
+                            setDragging(`text-${text.id}`);
+                          }
+                          return;
                         }
                       }
                     }}
@@ -793,16 +791,17 @@ const MemeMaker = () => {
                           }
                         }
                         
-                        const topDist = Math.sqrt(Math.pow(centerX - topTextPos.x, 2) + Math.pow(centerY - topTextPos.y, 2));
-                        const bottomDist = Math.sqrt(Math.pow(centerX - bottomTextPos.x, 2) + Math.pow(centerY - bottomTextPos.y, 2));
-                        
-                        if (topText && topDist < 0.1) {
-                          setScaling('top');
-                        } else if (bottomText && bottomDist < 0.1) {
-                          setScaling('bottom');
-                        } else {
-                          setScaling('image');
+                        for (let i = texts.length - 1; i >= 0; i--) {
+                          const text = texts[i];
+                          const dist = Math.sqrt(Math.pow(centerX - text.x, 2) + Math.pow(centerY - text.y, 2));
+                          
+                          if (text.text && dist < 0.1) {
+                            setScaling(`text-${text.id}`);
+                            return;
+                          }
                         }
+                        
+                        setScaling('image');
                         return;
                       }
                       
@@ -823,13 +822,14 @@ const MemeMaker = () => {
                         }
                       }
                       
-                      const topDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
-                      const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
-                      
-                      if (topText && topDist < 0.1) {
-                        setDragging('top');
-                      } else if (bottomText && bottomDist < 0.1) {
-                        setDragging('bottom');
+                      for (let i = texts.length - 1; i >= 0; i--) {
+                        const text = texts[i];
+                        const dist = Math.sqrt(Math.pow(x - text.x, 2) + Math.pow(y - text.y, 2));
+                        
+                        if (text.text && dist < 0.1) {
+                          setDragging(`text-${text.id}`);
+                          return;
+                        }
                       }
                     }}
                     onWheel={(e) => {
@@ -856,7 +856,7 @@ const MemeMaker = () => {
           className={`mt-6 bg-white/20 backdrop-blur-md rounded-2xl p-4 text-white text-center border-2 border-white/30 cursor-pointer hover:bg-white/30 transition-all duration-300 ${isAnimating ? 'animate-shake' : ''}`}
         >
           <p className="text-xl font-black" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.8)'}}>
-            {riccoClicks > 0 ? 'Cihhuy' : 'Cihhuyy'}
+            {riccoClicks > 0 ? 'RIKKIUU' : 'RICCO'}
           </p>
         </div>
       </div>
