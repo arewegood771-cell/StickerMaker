@@ -71,7 +71,7 @@ const MemeMaker = () => {
         setImage(img);
       };
       img.onerror = () => {
-        alert('Gagal load gambar dari URL. Pastikan link valid dan bisa diakses.');
+        alert('Gagal load gambar dari URL :(((.');
       };
       img.src = url;
     }
@@ -426,7 +426,7 @@ const MemeMaker = () => {
                 htmlFor="sticker-upload"
                 className="block w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
-                + Tambah Sticker
+                Tambah Sticker
               </label>
               
               {stickerImages.length > 0 && (
@@ -441,7 +441,7 @@ const MemeMaker = () => {
                           onClick={() => setStickerImages(stickerImages.filter(s => s.id !== sticker.id))}
                           className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                         >
-                          ✖ Hapus
+                          Hapus
                         </button>
                       </div>
                       <label className="block text-xs font-bold text-black mb-1">Ukuran: {(sticker.size * 100).toFixed(0)}%</label>
@@ -563,7 +563,7 @@ const MemeMaker = () => {
                           t.id === textObj.id ? { ...t, text: e.target.value } : t
                         ));
                       }}
-                      placeholder="TULIS TEXT DISINI"
+                      placeholder="TULIS TEXT CUY"
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold uppercase transition-all duration-300"
                     />
 
@@ -652,7 +652,7 @@ const MemeMaker = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-black mb-2">Ketebalan Outline: {outlineWidth}px</label>
+                  <label className="block text-sm font-bold text-black mb-2">Ketebalan Stroke Text: {outlineWidth}px</label>
                   <input
                     type="range"
                     min="1"
@@ -672,14 +672,9 @@ const MemeMaker = () => {
                     placeholder="meme"
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold transition-all duration-300"
                   />
-                  <p className="text-xs text-gray-600 mt-1">File akan disimpan sebagai: {downloadFilename || 'meme'}.{isGif ? 'gif' : 'png'}</p>
+                  <p className="text-xs text-gray-600 mt-1">Nama pas di download {downloadFilename || 'meme'}.{isGif ? 'gif' : 'png'}</p>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-4 shadow-2xl">
-              <p className="text-sm font-bold text-white text-center mb-1">💡 Desktop: Klik kanan + drag = resize</p>
-              <p className="text-sm font-bold text-white text-center">📱 Mobile: Pinch zoom (2 jari) = resize</p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
