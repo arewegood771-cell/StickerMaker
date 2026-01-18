@@ -28,7 +28,10 @@ const MemeMaker = () => {
   const [bottomTextPos, setBottomTextPos] = useState({ x: 0.5, y: 0.85 });
   const [topTextSize, setTopTextSize] = useState(1);
   const [bottomTextSize, setBottomTextSize] = useState(1);
+  const [imageScale, setImageScale] = useState(1);
   const [dragging, setDragging] = useState(null);
+  const [scaling, setScaling] = useState(null);
+  const [initialPinchDist, setInitialPinchDist] = useState(null);
   const [riccoClicks, setRiccoClicks] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [stickerImages, setStickerImages] = useState([]);
@@ -42,7 +45,7 @@ const MemeMaker = () => {
     if (image) {
       drawMeme();
     }
-  }, [image, topText, bottomText, fontSize, fontFamily, uploadedFontName, outlineWidth, topTextPos, bottomTextPos, topTextSize, bottomTextSize, stickerImages]);
+  }, [image, topText, bottomText, fontSize, fontFamily, uploadedFontName, outlineWidth, topTextPos, bottomTextPos, topTextSize, bottomTextSize, imageScale, stickerImages]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -94,7 +97,7 @@ const MemeMaker = () => {
         fontFace.load().then((loadedFont) => {
           document.fonts.add(loadedFont);
           setUploadedFontName(fontName);
-          alert(`Font "${file.name}" berhasil diupload!`);
+          alert(`Font "${file.name}" Sudah diupload cihuyy`);
         }).catch((error) => {
           console.error('Error loading font:', error);
           alert('Gagal load font. Pastikan file format benar (.ttf, .otf, .woff, .woff2)');
@@ -114,8 +117,8 @@ const MemeMaker = () => {
     
     const maxWidth = 800;
     const maxHeight = 800;
-    let width = image.width;
-    let height = image.height;
+    let width = image.width * imageScale;
+    let height = image.height * imageScale;
 
     if (width > maxWidth || height > maxHeight) {
       const ratio = Math.min(maxWidth / width, maxHeight / height);
@@ -220,6 +223,7 @@ const MemeMaker = () => {
     setBottomTextPos({ x: 0.5, y: 0.85 });
     setTopTextSize(1);
     setBottomTextSize(1);
+    setImageScale(1);
     setStickerImages([]);
     setDownloadFilename('meme');
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -245,32 +249,115 @@ const MemeMaker = () => {
         s.id === stickerId ? { ...s, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : s
       ));
     }
+    
+    if (scaling === 'top' && e.buttons === 2) {
+      const centerDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
+      setTopTextSize(Math.max(0.3, Math.min(3, centerDist * 5)));
+    } else if (scaling === 'bottom' && e.buttons === 2) {
+      const centerDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
+      setBottomTextSize(Math.max(0.3, Math.min(3, centerDist * 5)));
+    } else if (scaling && scaling.startsWith('sticker-') && e.buttons === 2) {
+      const stickerId = parseInt(scaling.split('-')[1]);
+      setStickerImages(stickerImages.map(s => {
+        if (s.id === stickerId) {
+          const centerDist = Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2));
+          return { ...s, size: Math.max(0.05, Math.min(0.8, centerDist * 2)) };
+        }
+        return s;
+      }));
+    }
   };
 
   const handleTouchMove = (e) => {
     if (!canvasRef.current) return;
     
-    e.preventDefault();
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = (touch.clientX - rect.left) / rect.width;
-    const y = (touch.clientY - rect.top) / rect.height;
     
-    if (dragging === 'top') {
-      setTopTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
-    } else if (dragging === 'bottom') {
-      setBottomTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
-    } else if (dragging && dragging.startsWith('sticker-')) {
-      const stickerId = parseInt(dragging.split('-')[1]);
-      setStickerImages(stickerImages.map(s => 
-        s.id === stickerId ? { ...s, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : s
-      ));
+    if (e.touches.length === 2 && scaling === 'image') {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY
+      );
+      
+      if (initialPinchDist) {
+        const scale = dist / initialPinchDist;
+        setImageScale(prev => Math.max(0.3, Math.min(3, prev * scale)));
+        setInitialPinchDist(dist);
+      }
+      return;
+    }
+    
+    if (e.touches.length === 2 && scaling && scaling.startsWith('sticker-')) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY
+      );
+      
+      if (initialPinchDist) {
+        const scale = dist / initialPinchDist;
+        const stickerId = parseInt(scaling.split('-')[1]);
+        setStickerImages(stickerImages.map(s => {
+          if (s.id === stickerId) {
+            return { ...s, size: Math.max(0.05, Math.min(0.8, s.size * scale)) };
+          }
+          return s;
+        }));
+        setInitialPinchDist(dist);
+      }
+      return;
+    }
+    
+    if (e.touches.length === 2 && (scaling === 'top' || scaling === 'bottom')) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY
+      );
+      
+      if (initialPinchDist) {
+        const scale = dist / initialPinchDist;
+        if (scaling === 'top') {
+          setTopTextSize(prev => Math.max(0.3, Math.min(3, prev * scale)));
+        } else {
+          setBottomTextSize(prev => Math.max(0.3, Math.min(3, prev * scale)));
+        }
+        setInitialPinchDist(dist);
+      }
+      return;
+    }
+    
+    if (e.touches.length === 1) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const x = (touch.clientX - rect.left) / rect.width;
+      const y = (touch.clientY - rect.top) / rect.height;
+      
+      if (dragging === 'top') {
+        setTopTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+      } else if (dragging === 'bottom') {
+        setBottomTextPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+      } else if (dragging && dragging.startsWith('sticker-')) {
+        const stickerId = parseInt(dragging.split('-')[1]);
+        setStickerImages(stickerImages.map(s => 
+          s.id === stickerId ? { ...s, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : s
+        ));
+      }
     }
   };
 
   const handleMouseUp = () => {
     setDragging(null);
+    setScaling(null);
+    setInitialPinchDist(null);
   };
 
   const handleRiccoClick = () => {
@@ -336,7 +423,7 @@ const MemeMaker = () => {
                 htmlFor="sticker-upload"
                 className="block w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
-                + Tambah Sticker
+                Tambah Sticker
               </label>
               
               {stickerImages.length > 0 && (
@@ -351,7 +438,7 @@ const MemeMaker = () => {
                           onClick={() => setStickerImages(stickerImages.filter(s => s.id !== sticker.id))}
                           className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                         >
-                          ✖ Hapus
+                          Hapus
                         </button>
                       </div>
                       <label className="block text-xs font-bold text-black mb-1">Ukuran: {(sticker.size * 100).toFixed(0)}%</label>
@@ -375,7 +462,7 @@ const MemeMaker = () => {
                     onClick={() => setStickerImages([])}
                     className="w-full bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600 transition-all duration-300"
                   >
-                    Hapus Semua Sticker
+                    Hapus Semua sticker
                   </button>
                 </div>
               )}
@@ -395,10 +482,65 @@ const MemeMaker = () => {
               
               <label
                 htmlFor="file-upload"
-                className="block w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-lg transform hover:scale-105 transition"
+                className="block w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-xl font-bold text-center cursor-pointer hover:shadow-lg transform hover:scale-105 transition mb-3"
               >
                 Pilih Gambar
               </label>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Atau paste link gambar disini..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-all duration-300"
+                  onPaste={(e) => {
+                    const url = e.clipboardData.getData('text');
+                    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                      const img = new Image();
+                      img.crossOrigin = 'anonymous';
+                      img.onload = () => {
+                        setImage(img);
+                        setIsGif(url.toLowerCase().endsWith('.gif'));
+                      };
+                      img.onerror = () => {
+                        alert('Gagal load gambar dari URL. Pastikan link valid dan bisa diakses.');
+                      };
+                      img.src = url;
+                      e.target.value = url;
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const url = e.target.value;
+                      if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => {
+                          setImage(img);
+                          setIsGif(url.toLowerCase().endsWith('.gif'));
+                        };
+                        img.onerror = () => {
+                          alert('Gagal load gambar dari URL. Pastikan link valid dan bisa diakses.');
+                        };
+                        img.src = url;
+                      }
+                    }
+                  }}
+                />
+              </div>
+
+              {image && (
+                <div className="mt-3">
+                  <label className="block text-sm font-bold text-black mb-2">Ukuran Gambar: {(imageScale * 100).toFixed(0)}%</label>
+                  <input
+                    type="range"
+                    min="30"
+                    max="300"
+                    value={imageScale * 100}
+                    onChange={(e) => setImageScale(parseInt(e.target.value) / 100)}
+                    className="w-full"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
@@ -526,7 +668,7 @@ const MemeMaker = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-black mb-2">Nama File Download</label>
+                  <label className="block text-sm font-bold text-black mb-2">Nama Sticker pas di download</label>
                   <input
                     type="text"
                     value={downloadFilename}
@@ -534,15 +676,11 @@ const MemeMaker = () => {
                     placeholder="meme"
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none font-bold transition-all duration-300"
                   />
-                  <p className="text-xs text-gray-600 mt-1">File akan disimpan sebagai: {downloadFilename || 'meme'}.{isGif ? 'gif' : 'png'}</p>
+                  <p className="text-xs text-gray-600 mt-1">File akan disimpan sebagai: {downloadFilename || 'sticker'}.{isGif ? 'gif' : 'png'}</p>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-4 shadow-2xl">
-              <p className="text-sm font-bold text-white text-center">💡 Tips: Drag untuk pindah posisi text/sticker</p>
-            </div>
-
+            </div> 
+              
             <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -589,6 +727,7 @@ const MemeMaker = () => {
                       const rect = canvas.getBoundingClientRect();
                       const x = (e.clientX - rect.left) / rect.width;
                       const y = (e.clientY - rect.top) / rect.height;
+                      const isRightClick = e.button === 2;
                       
                       for (let i = stickerImages.length - 1; i >= 0; i--) {
                         const sticker = stickerImages[i];
@@ -598,7 +737,11 @@ const MemeMaker = () => {
                         const distY = Math.abs(y - sticker.y);
                         
                         if (distX < stickerWidth / 2 && distY < stickerHeight / 2) {
-                          setDragging(`sticker-${sticker.id}`);
+                          if (isRightClick) {
+                            setScaling(`sticker-${sticker.id}`);
+                          } else {
+                            setDragging(`sticker-${sticker.id}`);
+                          }
                           return;
                         }
                       }
@@ -607,15 +750,62 @@ const MemeMaker = () => {
                       const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
                       
                       if (topText && topDist < 0.1) {
-                        setDragging('top');
+                        if (isRightClick) {
+                          setScaling('top');
+                        } else {
+                          setDragging('top');
+                        }
                       } else if (bottomText && bottomDist < 0.1) {
-                        setDragging('bottom');
+                        if (isRightClick) {
+                          setScaling('bottom');
+                        } else {
+                          setDragging('bottom');
+                        }
                       }
                     }}
                     onContextMenu={(e) => e.preventDefault()}
                     onTouchStart={(e) => {
                       const canvas = canvasRef.current;
                       const rect = canvas.getBoundingClientRect();
+                      
+                      if (e.touches.length === 2) {
+                        const touch1 = e.touches[0];
+                        const touch2 = e.touches[1];
+                        const dist = Math.hypot(
+                          touch1.clientX - touch2.clientX,
+                          touch1.clientY - touch2.clientY
+                        );
+                        setInitialPinchDist(dist);
+                        
+                        const centerX = ((touch1.clientX + touch2.clientX) / 2 - rect.left) / rect.width;
+                        const centerY = ((touch1.clientY + touch2.clientY) / 2 - rect.top) / rect.height;
+                        
+                        for (let i = stickerImages.length - 1; i >= 0; i--) {
+                          const sticker = stickerImages[i];
+                          const stickerWidth = sticker.size;
+                          const stickerHeight = sticker.size * (sticker.img.height / sticker.img.width);
+                          const distX = Math.abs(centerX - sticker.x);
+                          const distY = Math.abs(centerY - sticker.y);
+                          
+                          if (distX < stickerWidth / 2 && distY < stickerHeight / 2) {
+                            setScaling(`sticker-${sticker.id}`);
+                            return;
+                          }
+                        }
+                        
+                        const topDist = Math.sqrt(Math.pow(centerX - topTextPos.x, 2) + Math.pow(centerY - topTextPos.y, 2));
+                        const bottomDist = Math.sqrt(Math.pow(centerX - bottomTextPos.x, 2) + Math.pow(centerY - bottomTextPos.y, 2));
+                        
+                        if (topText && topDist < 0.1) {
+                          setScaling('top');
+                        } else if (bottomText && bottomDist < 0.1) {
+                          setScaling('bottom');
+                        } else {
+                          setScaling('image');
+                        }
+                        return;
+                      }
+                      
                       const touch = e.touches[0];
                       const x = (touch.clientX - rect.left) / rect.width;
                       const y = (touch.clientY - rect.top) / rect.height;
@@ -642,6 +832,13 @@ const MemeMaker = () => {
                         setDragging('bottom');
                       }
                     }}
+                    onWheel={(e) => {
+                      if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        const delta = e.deltaY > 0 ? 0.95 : 1.05;
+                        setImageScale(prev => Math.max(0.3, Math.min(3, prev * delta)));
+                      }
+                    }}
                   />
                 </div>
               ) : (
@@ -659,7 +856,7 @@ const MemeMaker = () => {
           className={`mt-6 bg-white/20 backdrop-blur-md rounded-2xl p-4 text-white text-center border-2 border-white/30 cursor-pointer hover:bg-white/30 transition-all duration-300 ${isAnimating ? 'animate-shake' : ''}`}
         >
           <p className="text-xl font-black" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.8)'}}>
-            {riccoClicks > 0 ? 'RIKKIUU' : 'RICCO'}
+            {riccoClicks > 0 ? 'Cihhuy' : 'Cihhuyy'}
           </p>
         </div>
       </div>
