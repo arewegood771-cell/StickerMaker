@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sticker Tempel Text</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -29,7 +29,6 @@ const MemeMaker = () => {
   const [topTextSize, setTopTextSize] = useState(1);
   const [bottomTextSize, setBottomTextSize] = useState(1);
   const [dragging, setDragging] = useState(null);
-  const [resizing, setResizing] = useState(null);
   const [riccoClicks, setRiccoClicks] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [stickerImages, setStickerImages] = useState([]);
@@ -38,7 +37,6 @@ const MemeMaker = () => {
   const fileInputRef = useRef(null);
   const stickerInputRef = useRef(null);
   const fontInputRef = useRef(null);
-  const touchTimerRef = useRef(null);
 
   useEffect(() => {
     if (image) {
@@ -247,23 +245,6 @@ const MemeMaker = () => {
         s.id === stickerId ? { ...s, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : s
       ));
     }
-    
-    if (resizing === 'top') {
-      const centerDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
-      setTopTextSize(Math.max(0.3, Math.min(3, centerDist * 5)));
-    } else if (resizing === 'bottom') {
-      const centerDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
-      setBottomTextSize(Math.max(0.3, Math.min(3, centerDist * 5)));
-    } else if (resizing && resizing.startsWith('sticker-')) {
-      const stickerId = parseInt(resizing.split('-')[1]);
-      setStickerImages(stickerImages.map(s => {
-        if (s.id === stickerId) {
-          const centerDist = Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2));
-          return { ...s, size: Math.max(0.05, Math.min(0.8, centerDist * 2)) };
-        }
-        return s;
-      }));
-    }
   };
 
   const handleTouchMove = (e) => {
@@ -286,69 +267,16 @@ const MemeMaker = () => {
         s.id === stickerId ? { ...s, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) } : s
       ));
     }
-    
-    if (resizing === 'top') {
-      const centerDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
-      setTopTextSize(Math.max(0.3, Math.min(3, centerDist * 5)));
-    } else if (resizing === 'bottom') {
-      const centerDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
-      setBottomTextSize(Math.max(0.3, Math.min(3, centerDist * 5)));
-    } else if (resizing && resizing.startsWith('sticker-')) {
-      const stickerId = parseInt(resizing.split('-')[1]);
-      setStickerImages(stickerImages.map(s => {
-        if (s.id === stickerId) {
-          const centerDist = Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2));
-          return { ...s, size: Math.max(0.05, Math.min(0.8, centerDist * 2)) };
-        }
-        return s;
-      }));
-    }
   };
 
   const handleMouseUp = () => {
     setDragging(null);
-    setResizing(null);
   };
 
   const handleRiccoClick = () => {
     setRiccoClicks(prev => prev + 1);
     setIsAnimating(true);
     setTimeout(() => setIsAnimating(false), 500);
-  };
-
-  const startLongPress = (x, y) => {
-    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
-    
-    touchTimerRef.current = setTimeout(() => {
-      for (let i = stickerImages.length - 1; i >= 0; i--) {
-        const sticker = stickerImages[i];
-        const stickerWidth = sticker.size;
-        const stickerHeight = sticker.size * (sticker.img.height / sticker.img.width);
-        const distX = Math.abs(x - sticker.x);
-        const distY = Math.abs(y - sticker.y);
-        
-        if (distX < stickerWidth / 2 && distY < stickerHeight / 2) {
-          setResizing(`sticker-${sticker.id}`);
-          return;
-        }
-      }
-      
-      const topDist = Math.sqrt(Math.pow(x - topTextPos.x, 2) + Math.pow(y - topTextPos.y, 2));
-      const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
-      
-      if (topText && topDist < 0.1) {
-        setResizing('top');
-      } else if (bottomText && bottomDist < 0.1) {
-        setResizing('bottom');
-      }
-    }, 500);
-  };
-
-  const cancelLongPress = () => {
-    if (touchTimerRef.current) {
-      clearTimeout(touchTimerRef.current);
-      touchTimerRef.current = null;
-    }
   };
 
   return (
@@ -414,6 +342,35 @@ const MemeMaker = () => {
               {stickerImages.length > 0 && (
                 <div className="mt-4 space-y-2">
                   <p className="text-sm font-bold text-black">Sticker Aktif: {stickerImages.length}</p>
+                  
+                  {stickerImages.map((sticker, index) => (
+                    <div key={sticker.id} className="bg-gray-100 p-3 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold">Sticker {index + 1}</span>
+                        <button
+                          onClick={() => setStickerImages(stickerImages.filter(s => s.id !== sticker.id))}
+                          className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                        >
+                          ✖ Hapus
+                        </button>
+                      </div>
+                      <label className="block text-xs font-bold text-black mb-1">Ukuran: {(sticker.size * 100).toFixed(0)}%</label>
+                      <input
+                        type="range"
+                        min="5"
+                        max="80"
+                        value={sticker.size * 100}
+                        onChange={(e) => {
+                          const newSize = parseInt(e.target.value) / 100;
+                          setStickerImages(stickerImages.map(s => 
+                            s.id === sticker.id ? { ...s, size: newSize } : s
+                          ));
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  ))}
+                  
                   <button
                     onClick={() => setStickerImages([])}
                     className="w-full bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600 transition-all duration-300"
@@ -533,6 +490,30 @@ const MemeMaker = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-bold text-black mb-2">Ukuran Text Atas: {(topTextSize * 100).toFixed(0)}%</label>
+                  <input
+                    type="range"
+                    min="30"
+                    max="300"
+                    value={topTextSize * 100}
+                    onChange={(e) => setTopTextSize(parseInt(e.target.value) / 100)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-black mb-2">Ukuran Text Bawah: {(bottomTextSize * 100).toFixed(0)}%</label>
+                  <input
+                    type="range"
+                    min="30"
+                    max="300"
+                    value={bottomTextSize * 100}
+                    onChange={(e) => setBottomTextSize(parseInt(e.target.value) / 100)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-bold text-black mb-2">Ketebalan Outline: {outlineWidth}px</label>
                   <input
                     type="range"
@@ -559,7 +540,7 @@ const MemeMaker = () => {
             </div>
 
             <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-4 shadow-2xl">
-              <p className="text-sm font-bold text-white text-center">💡 Tips: Klik kiri = pindah | Klik kanan/tahan lama = resize</p>
+              <p className="text-sm font-bold text-white text-center">💡 Tips: Drag untuk pindah posisi text/sticker</p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300">
@@ -597,10 +578,7 @@ const MemeMaker = () => {
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
                   onTouchMove={handleTouchMove}
-                  onTouchEnd={() => {
-                    cancelLongPress();
-                    handleMouseUp();
-                  }}
+                  onTouchEnd={handleMouseUp}
                 >
                   <canvas
                     ref={canvasRef}
@@ -611,7 +589,6 @@ const MemeMaker = () => {
                       const rect = canvas.getBoundingClientRect();
                       const x = (e.clientX - rect.left) / rect.width;
                       const y = (e.clientY - rect.top) / rect.height;
-                      const isRightClick = e.button === 2;
                       
                       for (let i = stickerImages.length - 1; i >= 0; i--) {
                         const sticker = stickerImages[i];
@@ -621,11 +598,7 @@ const MemeMaker = () => {
                         const distY = Math.abs(y - sticker.y);
                         
                         if (distX < stickerWidth / 2 && distY < stickerHeight / 2) {
-                          if (isRightClick) {
-                            setResizing(`sticker-${sticker.id}`);
-                          } else {
-                            setDragging(`sticker-${sticker.id}`);
-                          }
+                          setDragging(`sticker-${sticker.id}`);
                           return;
                         }
                       }
@@ -634,17 +607,9 @@ const MemeMaker = () => {
                       const bottomDist = Math.sqrt(Math.pow(x - bottomTextPos.x, 2) + Math.pow(y - bottomTextPos.y, 2));
                       
                       if (topText && topDist < 0.1) {
-                        if (isRightClick) {
-                          setResizing('top');
-                        } else {
-                          setDragging('top');
-                        }
+                        setDragging('top');
                       } else if (bottomText && bottomDist < 0.1) {
-                        if (isRightClick) {
-                          setResizing('bottom');
-                        } else {
-                          setDragging('bottom');
-                        }
+                        setDragging('bottom');
                       }
                     }}
                     onContextMenu={(e) => e.preventDefault()}
@@ -654,8 +619,6 @@ const MemeMaker = () => {
                       const touch = e.touches[0];
                       const x = (touch.clientX - rect.left) / rect.width;
                       const y = (touch.clientY - rect.top) / rect.height;
-                      
-                      startLongPress(x, y);
                       
                       for (let i = stickerImages.length - 1; i >= 0; i--) {
                         const sticker = stickerImages[i];
